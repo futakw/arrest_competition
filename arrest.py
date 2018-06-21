@@ -1,4 +1,4 @@
-# 日付map
+# 日付map：時系列順にダミー変数化
 def date(x):
     b=int(str(x).split('-')[1])
     if  str(x).split('-')[0]=='2013':
@@ -9,11 +9,11 @@ def date(x):
         a=24
     return a+b
 
-# 時間map
+# 時間map：時間だけ取り出し分を無視してダミー変数化
 def time(x):
     return str(x).split(':')[0]
 
-# 年齢map
+# 年齢map：１０歳ごとにダミー変数化
 def age(x):
     return  str(int(int(x)/10))
 		
@@ -21,14 +21,14 @@ def age(x):
 def toStr(x):
     return str(x)
 
-# 文字列を分離して個数をリターン		
+# 文字列を分離して個数をリターン：違反の数		
 def splitStr(x):
     return len(str(x).split(','))
 
 
 
 
-# 以下前処理
+####### 前処理
 
 # 以下のモジュールを使うので、あらかじめ読み込んでおいてください
 import numpy as np
@@ -50,17 +50,17 @@ def preprocess(arr,isTrain):
     global officer_del
     global location_del
     
-    #state
+    #state：無視
     arr=arr.drop('state',axis=1)
     
-    #date
+    #date：時系列順にダミー変数化
     arr['stop_date'] = arr['stop_date'].map(date)
     
     A=pd.get_dummies(arr[['stop_date']].astype(object))
     arr=pd.concat([arr, A], axis=1)
     arr=arr.drop('stop_date',axis=1)
     
-    #time
+    #time：時間だけ取り出し分を無視してダミー変数化
     arr['stop_time'] = arr['stop_time'].map(time)
 
     B=pd.get_dummies(arr[['stop_time']])
@@ -68,7 +68,7 @@ def preprocess(arr,isTrain):
     arr=arr.drop('stop_time',axis=1)
     arr=arr.drop('stop_time_nan',axis=1)
     
-    #location
+    #location：　逮捕率が高い場所をOneHotCoding
     C=pd.get_dummies(arr[['location_raw']])
     C=C.sort_index()
     C_idx = C.shape[0]
@@ -98,25 +98,25 @@ def preprocess(arr,isTrain):
     arr=pd.concat([arr, C], axis=1)
     arr=arr.drop('location_raw',axis=1)
     
-    #county
+    #county:ダミー変数化
     arr=arr.drop('county_name',axis=1)
     arr=arr.replace({9001.0: '0', 9003.0: '1', 9005.0: '2', 9007.0: '3', 9009.0: '4', 9011.0: '5', 9013.0: '6', 9015.0: '7'})
     E=pd.get_dummies(arr[['county_fips']])
     arr=pd.concat([arr, E], axis=1)
     arr=arr.drop('county_fips',axis=1)
     
-    #grain_loc
+    #grain_loc：無視
     arr=arr.drop('fine_grained_location',axis=1)
     
-    #police_dep
+    #police_dep：無視
     arr=arr.drop('police_department',axis=1)
     
-    #gender
+    #gender：ダミー変数化
     F=pd.get_dummies(arr[['driver_gender']])
     arr=pd.concat([arr, F], axis=1)
     arr=arr.drop('driver_gender',axis=1)
     
-    #age
+    #age：１０歳ごとにダミー変数化
     arr['driver_age']=arr['driver_age'].fillna(0)
 
     arr['driver_age']=arr['driver_age'].map(age)
@@ -127,13 +127,13 @@ def preprocess(arr,isTrain):
     arr=arr.drop('driver_age',axis=1)
     arr=arr.drop('driver_age_raw',axis=1)
     
-    #race
+    #race：ダミー変数化
     H=pd.get_dummies(arr[['driver_race']])
     arr=pd.concat([arr, H], axis=1)
     arr=arr.drop('driver_race',axis=1)
     arr=arr.drop('driver_race_raw',axis=1)
     
-    #violation
+    #violation：ダミー変数化、違反数も変数に
     arr['violation_num']=np.zeros(arr.shape[0])
     
     arr['violation_num'] = arr['violation'].map(splitStr)
@@ -161,23 +161,23 @@ def preprocess(arr,isTrain):
     arr=arr.drop('violation',axis=1)
     arr=arr.drop('violation_raw',axis=1)
     
-    #search-sconducted
+    #search-sconducted：ダミー
     I=pd.get_dummies(arr[['search_conducted']].astype(object))
     arr=pd.concat([arr, I], axis=1)
     arr=arr.drop('search_conducted',axis=1)
     
-    #search-type
+    #search-type：ダミー
     J=pd.get_dummies(arr[['search_type']].astype(object),dummy_na=True)
     arr=pd.concat([arr, I], axis=1)
     arr=arr.drop('search_type',axis=1)
     arr=arr.drop('search_type_raw',axis=1)
     
-    #contraband
+    #contraband：ダミー
     K=pd.get_dummies(arr[['contraband_found']].astype(object))
     arr=pd.concat([arr, K], axis=1)
     arr=arr.drop('contraband_found',axis=1)
     
-    #officer
+    #officer：五人以上の捜査をしたofficerをダミー変数化
     arr['officer_id'] = arr['officer_id'].map(toStr)
     L=pd.get_dummies(arr[['officer_id']].astype(object))
     L=L.sort_index()
@@ -208,7 +208,7 @@ def preprocess(arr,isTrain):
     arr=pd.concat([arr, L], axis=1)
     arr=arr.drop('officer_id',axis=1)
     
-    #duration
+    #duration：順序変数に
     duration_mapping = {'1-15 min':1  , '16-30 min':2, '30+ min':3}
     arr['stop_duration']=arr['stop_duration'].map(duration_mapping)
 #     M=pd.get_dummies(arr[['stop_duration']].astype(object))
@@ -272,7 +272,7 @@ def AUC(method ,X_test_std, y_test):
 
 
 
-### 学習
+####### 学習
 arr=preprocess(arr,True)
 X_train,X_test,y_train, y_test =Split(arr)
 X_train_std, X_test_std=Standardize(X_train)
@@ -299,7 +299,7 @@ A[0]=A[0].map(bord)
 print(roc_auc_score(y_test, A[0]))
 
 
-###　予測
+#######　予測
 
 test = pd.read_csv('test.csv')
 test=preprocess(test, False)
